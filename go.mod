@@ -1,4 +1,4 @@
-module awesomeProject35
+module github.com/arran4/vim-barcode-sheet
 
 go 1.25
 
