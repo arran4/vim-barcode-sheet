@@ -1,3 +1,5 @@
 # Vim Barcode Cheetsheet
 
 ![vim-barcodes-a4.png](vim-barcodes-a4.png)
+
+Most of these barcodes are place holders until I think of something better to put there.

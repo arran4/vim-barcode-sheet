@@ -14,18 +14,19 @@ import (
 	"golang.org/x/image/font/opentype"
 )
 
-// NOTE: The scanner always appends <CR> (Enter). Therefore:
+// NOTE: Scanner always appends <CR> (Enter).
 // - All Code values below DO NOT include "<CR>" or a newline.
 // - They are mostly ":"-style ex commands where Enter is expected.
 
 // VimOp represents a single barcode entry.
 type VimOp struct {
 	Code        string // Exact string encoded in the barcode (no <CR>)
-	Label       string // Short label shown under barcode
+	Label       string // Short label printed under barcode
 	Description string // Human description
 }
 
 // Curated set of multi-keystroke commands where automatic <CR> is useful.
+// Length is 104 (divisible by 4) so a 4xN grid is perfectly filled.
 var vimOps = []VimOp{
 	// --- Files: write / quit / reload / sudo tricks ---
 	{":w", ":w", "Write current file"},
@@ -38,9 +39,9 @@ var vimOps = []VimOp{
 	{":w!", ":w!", "Force write (read-only files)"},
 	{":e!", ":e!", "Reload file (discard changes)"},
 	{":up", ":up", "Write only if buffer changed"},
-	{":w ++ff=unix", ":w ++ff=unix", "Write with Unix fileformat"},
-	{":w ++ff=dos", ":w ++ff=dos", "Write with DOS fileformat"},
-	{":!sudo tee %", ":!sudo tee %", "Write as root via sudo tee"},
+	{":w ++ff=unix", "w ++ff=unix", "Write with Unix fileformat"},
+	{":w ++ff=dos", "w ++ff=dos", "Write with DOS fileformat"},
+	{":!sudo tee %", "!sudo tee %", "Write as root via sudo tee"},
 
 	// --- Buffer / file navigation ---
 	{":ls", ":ls", "List buffers"},
@@ -63,11 +64,11 @@ var vimOps = []VimOp{
 	{":close", ":close", "Close current window"},
 	{":new", ":new", "New empty window"},
 	{":vnew", ":vnew", "New empty vertical split"},
-	{":wincmd = ", ":wincmd =", "Equalize split sizes"},
-	{":wincmd H", ":wincmd H", "Move window to far left"},
-	{":wincmd J", ":wincmd J", "Move window to bottom"},
-	{":wincmd K", ":wincmd K", "Move window to top"},
-	{":wincmd L", ":wincmd L", "Move window to far right"},
+	{":wincmd =", "wincmd =", "Equalize split sizes"},
+	{":wincmd H", "wincmd H", "Move window to far left"},
+	{":wincmd J", "wincmd J", "Move window to bottom"},
+	{":wincmd K", "wincmd K", "Move window to top"},
+	{":wincmd L", "wincmd L", "Move window to far right"},
 
 	// --- Tabs ---
 	{":tabnew", ":tabnew", "New tab"},
@@ -75,8 +76,8 @@ var vimOps = []VimOp{
 	{":tabonly", ":tabonly", "Close all other tabs"},
 	{":tabnext", ":tabnext", "Next tab"},
 	{":tabprev", ":tabprev", "Previous tab"},
-	{":tabmove 0", ":tabmove 0", "Move tab to front"},
-	{":tabmove$", ":tabmove$", "Move tab to end"},
+	{":tabmove 0", "tabmove 0", "Move tab to front"},
+	{":tabmove$", "tabmove$", "Move tab to end"},
 
 	// --- Search & highlight behaviour ---
 	{":noh", ":noh", "Clear search highlight"},
@@ -119,12 +120,13 @@ var vimOps = []VimOp{
 	{":set nowrap", "nowrap", "No wrap; horizontal scroll"},
 	{":set colorcolumn=80", "cc=80", "Mark column 80"},
 	{":set colorcolumn=", "cc=", "Clear colorcolumn"},
-	{":set showmatch", "showmatch", "Briefly jump to matching bracket"},
+	{":set showmatch", "showmatch", "Brief jump to matching bracket"},
 	{":set noshowmatch", "noshowmatch", "Disable showmatch"},
 	{":set ruler", "ruler", "Show cursor position"},
 	{":set noruler", "noruler", "Hide ruler"},
 	{":set showcmd", "showcmd", "Show partial commands"},
 	{":set noshowcmd", "noshowcmd", "Hide partial commands"},
+	{":set showmode", "showmode", "Show current mode in last line"},
 
 	// --- Spellchecking ---
 	{":set spell", "spell", "Enable spell checking"},
@@ -144,12 +146,9 @@ var vimOps = []VimOp{
 	{":set foldenable", "foldenable", "Enable folding"},
 	{":set nofoldenable", "nofoldenable", "Disable folding"},
 
-	// --- Global substitutions & quick refactors ---
-	{":%s/old/new/g", ":%s/old/new/g", "Substitute in whole file"},
-	{":%s/old/new/gc", ":%s/old/new/gc", "Substitute with confirm"},
-	{":%s/\\s\\+$//e", ":%s/\\s\\+$//e", "Strip trailing whitespace"},
-	{":g/DEBUG/d", ":g/DEBUG/d", "Delete all lines containing DEBUG"},
-	{":vimgrep /TODO/ **/*", ":vimgrep /TODO/ **/*", "Search TODO in project"},
+	// --- Project/search tools (non-editing) ---
+	{":g/DEBUG/d", "g/DEBUG/d", "Delete all lines containing DEBUG"},
+	{":vimgrep /TODO/ **/*", "vimgrep /TODO/ **/*", "Search TODO in project"},
 	{":copen", ":copen", "Open quickfix window"},
 	{":cclose", ":cclose", "Close quickfix window"},
 }
@@ -180,11 +179,12 @@ func main() {
 	title := "Vim Barcode Cheat Sheet (Scanner adds <CR>)"
 	dc.DrawStringAnchored(title, float64(width)/2, margin/2, 0.5, 0.5)
 
-	// Layout: many commands => 4 columns is a good balance
+	// Layout: 4 columns, automatic rows
 	cols := 4
 	rows := int(math.Ceil(float64(len(vimOps)) / float64(cols)))
 
 	top := margin
+	// grid uses [top, bottom); footer lives in the bottom margin area
 	bottom := float64(height) - margin
 	left := margin
 	right := float64(width) - margin
@@ -238,6 +238,34 @@ func main() {
 		descY := labelY + 12
 		dc.SetFontFace(mustGoRegularFace(8))
 		dc.DrawStringWrapped(op.Description, x+6, descY, 0, 0, cellWidth-12, 1.3, gg.AlignCenter)
+	}
+
+	// --- Footer: repo barcode + text ----------------------------------------
+	footerText := "https://github.com/arran4/vim-barcode-sheet"
+
+	footerRaw, err := code128.Encode(footerText)
+	if err != nil {
+		log.Printf("encode error for footer: %v", err)
+	} else {
+		footerBarcodeWidth := int(float64(width) * 0.6)
+		footerBarcodeHeight := int(margin * 0.4)
+
+		footerScaled, err := barcode.Scale(footerRaw, footerBarcodeWidth, footerBarcodeHeight)
+		if err != nil {
+			log.Printf("scale error for footer: %v", err)
+		} else {
+			// Place footer barcode in bottom margin, centred
+			footerTop := bottom + 5
+			fbX := float64(width)/2 - float64(footerScaled.Bounds().Dx())/2
+			fbY := footerTop
+			dc.DrawImage(footerScaled, int(fbX), int(fbY))
+
+			// Footer text under barcode
+			textY := fbY + float64(footerBarcodeHeight) + 12
+			dc.SetColor(color.Black)
+			dc.SetFontFace(mustGoRegularFace(9))
+			dc.DrawStringAnchored(footerText, float64(width)/2, textY, 0.5, 0)
+		}
 	}
 
 	out := "vim-barcodes-a4.png"
