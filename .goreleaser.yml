@@ -31,7 +31,7 @@ nfpms:
     id: "vim-barcode-sheet"
     package_name: "vim-barcode-sheet"
     homepage: "https://github.com/arran4/vim-barcode-sheet"
-    maintainer: "Arran Ubels <arran@ubels.com>"
+    maintainer: "Arran Ubels <arran@ubels.com.au>"
     description: "Vim barcode sheet generator."
     license: "MIT"
     formats:
