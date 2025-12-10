@@ -10,8 +10,6 @@ builds:
       - linux
       - windows
       - darwin
-archives:
-  - name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os | title }}_{{ .Arch | replace "386" "i386" | replace "amd64" "x86_64" }}{{ with .Goamd64 }}_{{ . }}{{ end }}{{ with .Goarm }}_{{ . }}{{ end }}{{ with .Go386 }}_{{ . }}{{ end }}'
 checksum:
   name_template: 'checksums.txt'
 snapshot:
